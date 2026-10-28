@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PM2.5 StatCalc - Analytics & Probability Density Dashboard</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #030712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e1b4b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #312e81;
+    }
+
+    /* Ambient Gradient Background Glows */
+    .bg-gradient-glow {
+      background: #030712;
+    }
+
+    .ambient-glow-1 {
+      position: fixed;
+      top: -12%;
+      left: -12%;
+      width: 55vw;
+      height: 55vw;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .ambient-glow-2 {
+      position: fixed;
+      bottom: -12%;
+      right: -12%;
+      width: 55vw;
+      height: 55vw;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ambient-glow-3 {
+      position: fixed;
+      top: 35%;
+      left: 30%;
+      width: 45vw;
+      height: 45vw;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glassmorphism Styling */
+    .glass-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    }
+    .glass-card:hover {
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .glass-card-sidebar {
+      background: rgba(10, 15, 30, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Gradient Buttons & Highlights */
+    .btn-gradient-cyan {
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+      background-size: 200% auto;
+      transition: all 0.3s ease;
+    }
+    .btn-gradient-cyan:hover {
+      background-position: right center;
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-gradient-emerald {
+      background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-gradient-emerald:hover {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-gradient-danger {
+      background: linear-gradient(135deg, #f43f5e 0%, #d946ef 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-gradient-danger:hover {
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .text-gradient-primary {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #c084fc 70%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Atmosphere Aerial Haze Canvas Glow */
+    .aerial-canvas-container {
+      background: radial-gradient(ellipse at center, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
+    }
+
+    /* Print Custom Stylesheet */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #ffffff !important; color: #000000 !important; }
+      .glass-card, .glass-card-sidebar { 
+        background: #ffffff !important; 
+        border: 1px solid #cbd5e1 !important; 
+        box-shadow: none !important; 
+        color: #000000 !important; 
+        backdrop-filter: none !important;
+      }
+      .text-gradient-primary {
+        -webkit-text-fill-color: initial !important;
+        background: none !important;
+        color: #0f172a !important;
+      }
+      canvas { max-height: 260px !important; }
+      .main-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+    }
+  </style>
+</head>
+<body class="bg-gradient-glow text-slate-100 font-sans min-h-screen flex flex-col md:flex-row antialiased selection:bg-cyan-500 selection:text-slate-950 relative overflow-x-hidden">
+
+  <!-- Ambient Light Effect Bubbles -->
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
+  <div class="ambient-glow-3"></div>
+
+  <!-- ================= SIDEBAR KIRI (DASHBOARD NAVIGATION & FORM) ================= -->
+  <aside class="w-full md:w-80 lg:w-96 glass-card-sidebar p-5 md:p-6 flex flex-col justify-between shrink-0 no-print z-20 md:min-h-screen">
+    
+    <div class="space-y-6">
+      <!-- Header Logo & Title -->
+      <div class="flex items-center gap-3.5 border-b border-slate-800/80 pb-5">
+        <div class="relative group">
+          <div class="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 via-indigo-500 to-pink-500 rounded-2xl blur opacity-80 group-hover:opacity-100 transition duration-300"></div>
+          <div class="relative bg-slate-950 p-2.5 rounded-2xl text-cyan-400 border border-slate-800">
+            <i data-lucide="sparkles" class="w-6 h-6"></i>
+          </div>
+        </div>
+        <div>
+          <h1 class="font-black text-xl text-gradient-primary tracking-tight flex items-center gap-2">
+            PM2.5 StatCalc
+          </h1>
+          <p class="text-xs text-slate-400 font-medium">Analisis Probabilitas Udara Ultra-Vibrant</p>
+        </div>
+      </div>
+
+      <!-- Form Input Data PM2.5 -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-300 uppercase tracking-widest flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-cyan-400"></i> Input Sample PM2.5
+          </h2>
+          <span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800 text-slate-400 font-semibold">
+            Tunggal / Masal
+          </span>
+        </div>
+
+        <!-- Input Tunggal -->
+        <form id="singleForm" class="space-y-2">
+          <label class="text-[11px] font-semibold text-slate-300 block">Tambah Sampel Tunggal (µg/m³)</label>
+          <div class="flex gap-2">
+            <input type="number" step="0.1" min="0" id="singlePMInput" placeholder="Contoh: 35.5" class="flex-1 bg-slate-950/80 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition">
+            <button type="submit" class="btn-gradient-emerald px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 flex items-center gap-1 shadow-md shrink-0">
+              <i data-lucide="plus" class="w-4 h-4"></i> Tambah
+            </button>
+          </div>
+        </form>
+
+        <!-- Input Masal (Batch Textarea) -->
+        <form id="bulkForm" class="space-y-2.5 pt-2 border-t border-slate-800/80">
+          <label class="text-[11px] font-semibold text-slate-300 block">Input Banyak Data (Massal)</label>
+          <textarea id="bulkPMInput" rows="3" 
+            placeholder="Ketik/Paste angka dipisah koma, spasi, atau baris baru:&#10;12.5, 34.0, 55.2, 18.9, 34.0, 80.5" 
+            class="w-full bg-slate-950/80 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition resize-none"></textarea>
+          
+          <button type="submit" 
+            class="w-full btn-gradient-cyan text-slate-950 font-extrabold py-2.5 rounded-xl text-xs shadow-lg flex items-center justify-center gap-2 group active:scale-[0.98]">
+            <i data-lucide="calculator" class="w-4 h-4 transition-transform group-hover:rotate-12"></i> Hitung & Perbarui Grafik
+          </button>
+        </form>
+      </div>
+
+      <!-- Section Opsi Ekspor & Cetak -->
+      <div class="space-y-3 pt-4 border-t border-slate-800/80">
+        <h2 class="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300 uppercase tracking-widest flex items-center gap-2">
+          <i data-lucide="download" class="w-4 h-4 text-purple-400"></i> Laporan & Ekspor
+        </h2>
+
+        <!-- Unduh CSV (Google Sheets Ready) -->
+        <button id="btnExportCSV" type="button" 
+          class="w-full bg-slate-950/60 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-white p-3 rounded-xl text-xs font-semibold transition flex items-center justify-between group">
+          <div class="flex items-center gap-2.5">
+            <div class="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:bg-emerald-500/20 transition">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+            </div>
+            <span class="text-left">Unduh Format CSV</span>
+          </div>
+          <span class="text-[10px] bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-md border border-emerald-500/30">
+            Untuk Google Sheet
+          </span>
+        </button>
+
+        <!-- Cetak / Print Laporan -->
+        <button id="btnPrint" type="button" 
+          class="w-full bg-slate-950/60 hover:bg-slate-900 border border-slate-800 text-slate-300 hover:text-white p-3 rounded-xl text-xs font-semibold transition flex items-center justify-between group">
+          <div class="flex items-center gap-2.5">
+            <div class="p-1.5 bg-purple-500/10 rounded-lg text-purple-400 group-hover:bg-purple-500/20 transition">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+            </div>
+            <span>Cetak / Print Laporan</span>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Section Pengaturan Reset Data -->
+    <div class="pt-5 mt-5 border-t border-slate-800/80 space-y-3">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i> Pengaturan
+      </h2>
+
+      <div class="flex gap-2">
+        <button id="btnLoadSample" type="button" 
+          class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 py-2.5 px-2 rounded-xl text-[11px] font-semibold transition flex items-center justify-center gap-1.5">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-amber-400"></i> Data Sampel
+        </button>
+
+        <button id="btnReset" type="button" 
+          class="flex-1 btn-gradient-danger text-white border border-rose-500/20 py-2.5 px-2 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Semua
+        </button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ================= MAIN CONTENT DASHBOARD ================= -->
+  <main class="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto main-content z-10">
+    
+    <!-- Header Title Banner -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 glass-card p-6 rounded-3xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-gradient-to-br from-cyan-500/10 via-indigo-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div>
+        <h2 class="text-2xl font-black text-gradient-primary">Kalkulator Statistik & Probabilitas PM2.5</h2>
+        <p class="text-xs text-slate-400 mt-1">Estimasi Kuantitatif Distribusi Peluang Densitas Sampel PM2.5</p>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span class="text-xs font-bold text-slate-300">Statistik Murni (Tanpa ISPU)</span>
+      </div>
+    </div>
+
+    <!-- Metric Display Cards (8 Parameter Statistik Kunci) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Mean -->
+      <div class="glass-card p-4 rounded-2xl relative overflow-hidden group border-l-4 border-l-cyan-400">
+        <div class="text-xs font-semibold text-slate-400 flex items-center justify-between mb-1">
+          <span>Mean (Rata-Rata)</span>
+          <i data-lucide="calculator" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+        <div id="statMean" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-300">0.00</div>
+        <div class="text-[10px] text-slate-500 mt-1">µg/m³ (Rerata Aritmatika)</div>
+      </div>
+
+      <!-- Median -->
+      <div class="glass-card p-4 rounded-2xl relative overflow-hidden group border-l-4 border-l-purple-400">
+        <div class="text-xs font-semibold text-slate-400 flex items-center justify-between mb-1">
+          <span>Median (Tengah)</span>
+          <i data-lucide="git-commit" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <div id="statMedian" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-300">0.00</div>
+        <div class="text-[10px] text-slate-500 mt-1">µg/m³ (Persentil 50%)</div>
+      </div>
+
+      <!-- Mode -->
+      <div class="glass-card p-4 rounded-2xl relative overflow-hidden group border-l-4 border-l-amber-400">
+        <div class="text-xs font-semibold text-slate-400 flex items-center justify-between mb-1">
+          <span>Modus (Frekuensi Max)</span>
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div id="statMode" class="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 truncate">-</div>
+        <div class="text-[10px] text-slate-500 mt-1">Nilai Sering Muncul</div>
+      </div>
+
+      <!-- Standard Deviation -->
+      <div class="glass-card p-4 rounded-2xl relative overflow-hidden group border-l-4 border-l-rose-400">
+        <div class="text-xs font-semibold text-slate-400 flex items-center justify-between mb-1">
+          <span>Std Deviasi (σ)</span>
+          <i data-lucide="activity" class="w-4 h-4 text-rose-400"></i>
+        </div>
+        <div id="statStdDev" class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-400">0.00</div>
+        <div class="text-[10px] text-slate-500 mt-1">Simpangan Baku Sebaran</div>
+      </div>
+
+      <!-- Min -->
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-l-blue-400">
+        <div class="text-xs font-semibold text-slate-400 mb-1">Minimum (Min)</div>
+        <div id="statMin" class="text-xl font-bold text-slate-200">0.0</div>
+        <div class="text-[10px] text-slate-500">µg/m³</div>
+      </div>
+
+      <!-- Max -->
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-l-emerald-400">
+        <div class="text-xs font-semibold text-slate-400 mb-1">Maksimum (Max)</div>
+        <div id="statMax" class="text-xl font-bold text-slate-200">0.0</div>
+        <div class="text-[10px] text-slate-500">µg/m³</div>
+      </div>
+
+      <!-- Range -->
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-l-indigo-400">
+        <div class="text-xs font-semibold text-slate-400 mb-1">Jangkauan (Range)</div>
+        <div id="statRange" class="text-xl font-bold text-slate-200">0.0</div>
+        <div class="text-[10px] text-slate-500">Max - Min</div>
+      </div>
+
+      <!-- Total N -->
+      <div class="glass-card p-4 rounded-2xl border-l-4 border-l-teal-400">
+        <div class="text-xs font-semibold text-slate-400 mb-1">Total Sampel (N)</div>
+        <div id="statTotalN" class="text-xl font-black text-cyan-400">0 Sampel</div>
+        <div class="text-[10px] text-slate-500">Jumlah Entri Data</div>
+      </div>
+
+    </div>
+
+    <!-- Section Grafik Kurva Probabilitas Utama -->
+    <div class="glass-card p-5 md:p-6 rounded-3xl flex flex-col justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <div>
+          <h3 class="font-extrabold text-base text-white flex items-center gap-2">
+            <i data-lucide="trending-up" class="w-5 h-5 text-cyan-400"></i> Kurva Probabilitas & Densitas PM2.5
+          </h3>
+          <p class="text-xs text-slate-400">Sumbu Y (Kiri): Probabilitas Kemunculan Peluang (%) | Sumbu X (Bawah): Level Konsentrasi PM2.5 (µg/m³)</p>
+        </div>
+        <span class="text-[10px] bg-gradient-to-r from-cyan-500/20 via-indigo-500/20 to-pink-500/20 text-cyan-300 font-bold px-3 py-1 rounded-full border border-cyan-500/30 self-start sm:self-auto">
+          Spline Smooth Density Curve
+        </span>
+      </div>
+
+      <div class="relative w-full h-72 md:h-80">
+        <canvas id="probabilityCurveChart"></canvas>
+      </div>
+    </div>
+
+    <!-- SECTION VISUAL UDARA (AERIAL ATMOSPHERE & DISPERSION VISUALIZER) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Interactive Particle Atmosphere Canvas Banner -->
+      <div class="lg:col-span-2 glass-card p-5 md:p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden aerial-canvas-container">
+        <div class="flex items-center justify-between mb-3 z-10">
+          <div>
+            <h3 class="font-extrabold text-base text-white flex items-center gap-2">
+              <i data-lucide="wind" class="w-5 h-5 text-cyan-400 animate-spin" style="animation-duration: 10s;"></i> Visualisasi Dispersi Partikel Udara
+            </h3>
+            <p class="text-xs text-slate-400">Simulasi kerapatan partikel mikro PM2.5 berdasarkan statistik sebaran sampel</p>
+          </div>
+          <div id="hazeDensityBadge" class="text-[11px] bg-cyan-500/20 text-cyan-300 font-extrabold px-3 py-1 rounded-full border border-cyan-500/30">
+            Kerapatan: Rendah
+          </div>
+        </div>
+
+        <!-- Atmosphere Canvas -->
+        <div class="relative w-full h-44 rounded-2xl overflow-hidden border border-slate-800 my-2">
+          <canvas id="atmosphereCanvas" class="w-full h-full block"></canvas>
+          <div class="absolute bottom-2 left-3 right-3 flex justify-between items-center text-[10px] text-slate-400 bg-slate-950/70 backdrop-blur-md px-3 py-1 rounded-xl border border-slate-800">
+            <span>Visualisasi Partikel Haze Simulative</span>
+            <span id="particleCountText" class="font-bold text-cyan-300">0 Partikel Terdistribusi</span>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-slate-400 flex items-center gap-2 z-10 mt-1">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+          <span>Warna partikel mengindikasikan sebaran statistik nilai PM2.5: <span class="text-cyan-400 font-bold">Biru/Cyan (Rendah)</span>, <span class="text-amber-400 font-bold">Kuning (Sedang)</span>, <span class="text-rose-400 font-bold">Merah/Ungu (Tinggi)</span>.</span>
+        </div>
+      </div>
+
+      <!-- Ringkasan Kesimpulan Otomatis -->
+      <div class="glass-card p-5 md:p-6 rounded-3xl flex flex-col justify-between">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-base text-white flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-5 h-5 text-amber-400"></i> Ringkasan Kesimpulan
+            </h3>
+            <span class="text-[10px] bg-amber-500/10 text-amber-400 font-bold px-2 py-0.5 rounded-full border border-amber-500/20">Auto Analysis</span>
+          </div>
+
+          <!-- Puncak Probabilitas Highlight -->
+          <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-3">
+              <div class="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 text-cyan-300 border border-cyan-500/30">
+                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="text-[11px] text-slate-400 font-medium">Puncak Peluang (Peak Probability):</div>
+                <div id="peakProbabilityText" class="text-sm font-black text-cyan-300">Level 0 (0%)</div>
+              </div>
+            </div>
+            <p id="distributionShapeText" class="text-xs text-slate-300 leading-relaxed border-t border-slate-800/80 pt-2.5">
+              Belum ada data sampel yang dihitung. Masukkan angka PM2.5 pada form di samping.
+            </p>
+          </div>
+
+          <!-- Poin statistik -->
+          <div class="space-y-2">
+            <div class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Poin Hasil Kalkulasi:
+            </div>
+            <ul id="summaryList" class="space-y-2 text-xs text-slate-400">
+              <li class="flex items-start gap-2">
+                <span class="text-cyan-400 font-bold">•</span>
+                <span>Data dikelompokkan berurutan dalam rentang interval 10 unit.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-cyan-400 font-bold">•</span>
+                <span>Persentase Sumbu Y mewakili frekuensi relatif kemunculan sampel.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pt-3 mt-3 border-t border-slate-800/80 text-[11px] text-slate-500 flex items-center justify-between">
+          <span>Distribusi Probabilitas PM2.5</span>
+          <span class="font-semibold text-slate-400">Statistik Murni</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tabel Rincian Distribusi & Riwayat Data Raw -->
+    <div class="glass-card rounded-3xl overflow-hidden">
+      <div class="p-5 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <i data-lucide="table" class="w-5 h-5 text-purple-400"></i> Tabel Distribusi Frekuensi & Peluang
+          </h3>
+          <p class="text-xs text-slate-400">Rincian kemunculan sampel per interval level PM2.5</p>
+        </div>
+        <div class="text-xs text-slate-400 font-medium">
+          Tersimpan di Browser (<span class="text-cyan-400">LocalStorage</span>)
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <th class="py-3.5 px-5 font-bold">Rentang Level PM2.5 (µg/m³)</th>
+              <th class="py-3.5 px-5 font-bold">Jumlah Sampel (f)</th>
+              <th class="py-3.5 px-5 font-bold">Probabilitas (%)</th>
+              <th class="py-3.5 px-5 font-bold">Visual Bar Probabilitas</th>
+              <th class="py-3.5 px-5 font-bold text-right no-print">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="dataTableBody" class="divide-y divide-slate-800/60 text-xs text-slate-300">
+            <!-- Diisi JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden p-8 text-center space-y-3">
+        <div class="inline-flex p-3 rounded-full bg-slate-900 text-slate-500 border border-slate-800">
+          <i data-lucide="inbox" class="w-8 h-8"></i>
+        </div>
+        <p class="text-xs text-slate-400">Belum ada data PM2.5. Masukkan data pada form di sebelah kiri.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+  <!-- ================= JAVASCRIPT ENGINE ================= -->
+  <script>
+    const STORAGE_KEY = 'PM25_VIBRANT_STATISTICS_DATA';
+
+    // Sample default data
+    let rawValues = [8, 10, 10, 12, 14, 15, 18, 20, 20, 22, 25, 28, 30, 35, 40, 55, 60, 85];
+    let chartInstance = null;
+    let atmosphereAnimationId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize Event Listeners
+      document.getElementById('singleForm').addEventListener('submit', handleSingleSubmit);
+      document.getElementById('bulkForm').addEventListener('submit', handleBulkSubmit);
+      document.getElementById('btnExportCSV').addEventListener('click', exportToCSV);
+      document.getElementById('btnPrint').addEventListener('click', () => window.print());
+      document.getElementById('btnLoadSample').addEventListener('click', loadSampleData);
+      document.getElementById('btnReset').addEventListener('click', resetAllData);
+
+      window.addEventListener('resize', handleCanvasResize);
+
+      loadDataFromStorage();
+    });
+
+    function loadDataFromStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            rawValues = parsed.map(Number).filter(n => !isNaN(n) && n >= 0);
+          }
+        } catch (e) {
+          console.error("Gagal membaca LocalStorage:", e);
+        }
+      }
+      updateDashboard();
+    }
+
+    function saveDataToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rawValues));
+    }
+
+    function handleSingleSubmit(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('singlePMInput');
+      const val = parseFloat(inputEl.value);
+
+      if (isNaN(val) || val < 0) {
+        showToast('Masukkan angka PM2.5 yang valid!', 'error');
+        return;
+      }
+
+      rawValues.push(val);
+      rawValues.sort((a, b) => a - b);
+      saveDataToStorage();
+      updateDashboard();
+
+      inputEl.value = '';
+      showToast(`Berhasil menambahkan sampel ${val} µg/m³!`, 'success');
+    }
+
+    function handleBulkSubmit(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('bulkPMInput');
+      const text = inputEl.value.trim();
+
+      if (!text) return;
+
+      const parsedArray = text.split(/[\s,]+/).map(Number).filter(n => !isNaN(n) && n >= 0);
+
+      if (parsedArray.length === 0) {
+        showToast('Tidak ada angka numerik valid yang ditemukan!', 'error');
+        return;
+      }
+
+      rawValues = rawValues.concat(parsedArray);
+      rawValues.sort((a, b) => a - b);
+      saveDataToStorage();
+      updateDashboard();
+
+      inputEl.value = '';
+      showToast(`Berhasil menambahkan ${parsedArray.length} sampel masal!`, 'success');
+    }
+
+    function deleteRangeGroup(minVal, maxVal) {
+      rawValues = rawValues.filter(val => val < minVal || val > maxVal);
+      saveDataToStorage();
+      updateDashboard();
+      showToast('Kelompok sampel berhasil dihapus', 'info');
+    }
+
+    function resetAllData() {
+      if (confirm('Apakah Anda yakin ingin menghapus SELURUH data tersimpan?')) {
+        rawValues = [];
+        saveDataToStorage();
+        updateDashboard();
+        showToast('Semua data berhasil di-reset', 'info');
+      }
+    }
+
+    function loadSampleData() {
+      rawValues = [8, 10, 10, 12, 14, 15, 18, 20, 20, 22, 25, 28, 30, 35, 40, 55, 60, 85];
+      saveDataToStorage();
+      updateDashboard();
+      showToast('Data sampel berhasil dimuat', 'success');
+    }
+
+    function exportToCSV() {
+      if (rawValues.length === 0) {
+        showToast('Tidak ada data untuk diekspor!', 'error');
+        return;
+      }
+
+      // Format UTF-8 BOM untuk Google Sheets
+      let csvContent = "\uFEFF"; 
+      csvContent += "No,Nilai PM2.5 (ug/m3)\n";
+
+      rawValues.forEach((val, idx) => {
+        csvContent += `${idx + 1},${val}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `PM25_Probability_Data_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast('File CSV Siap Di-import ke Google Sheets', 'success');
+    }
+
+    // STATISTICAL ENGINE & CALCULATIONS
+    function updateDashboard() {
+      const N = rawValues.length;
+      
+      if (N === 0) {
+        document.getElementById('statMean').innerText = '0.00';
+        document.getElementById('statMedian').innerText = '0.00';
+        document.getElementById('statMode').innerText = '-';
+        document.getElementById('statStdDev').innerText = '0.00';
+        document.getElementById('statMin').innerText = '0.0';
+        document.getElementById('statMax').innerText = '0.0';
+        document.getElementById('statRange').innerText = '0.0';
+        document.getElementById('statTotalN').innerText = '0 Sampel';
+        document.getElementById('peakProbabilityText').innerText = 'Level - (0%)';
+        document.getElementById('distributionShapeText').innerText = 'Belum ada data sampel yang dihitung. Masukkan angka PM2.5 pada form di samping.';
+        document.getElementById('hazeDensityBadge').innerText = 'Kerapatan: 0%';
+        document.getElementById('particleCountText').innerText = '0 Partikel Terdistribusi';
+        
+        renderEmptyChart();
+        renderTable([]);
+        drawAtmosphereVisualizer(0, []);
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      // Mean
+      const sum = rawValues.reduce((a, b) => a + b, 0);
+      const mean = sum / N;
+
+      // Median
+      const sorted = [...rawValues].sort((a, b) => a - b);
+      let median = 0;
+      const mid = Math.floor(N / 2);
+      if (N % 2 === 0) {
+        median = (sorted[mid - 1] + sorted[mid]) / 2;
+      } else {
+        median = sorted[mid];
+      }
+
+      // Mode
+      const freqMap = {};
+      sorted.forEach(x => freqMap[x] = (freqMap[x] || 0) + 1);
+      let maxFreq = 0;
+      let modes = [];
+      for (const key in freqMap) {
+        if (freqMap[key] > maxFreq) {
+          maxFreq = freqMap[key];
+          modes = [Number(key)];
+        } else if (freqMap[key] === maxFreq && maxFreq > 1) {
+          modes.push(Number(key));
+        }
+      }
+      const modeText = (maxFreq > 1) ? modes.join(', ') : 'Unik (Tidak Ada)';
+
+      // Standard Deviation
+      const variance = N > 1 ? sorted.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / (N - 1) : 0;
+      const stdDev = Math.sqrt(variance);
+
+      // Min, Max, Range
+      const minVal = sorted[0];
+      const maxVal = sorted[N - 1];
+      const rangeVal = maxVal - minVal;
+
+      // Update UI Metrics
+      document.getElementById('statMean').innerText = mean.toFixed(2);
+      document.getElementById('statMedian').innerText = median.toFixed(2);
+      document.getElementById('statMode').innerText = modeText;
+      document.getElementById('statStdDev').innerText = stdDev.toFixed(2);
+      document.getElementById('statMin').innerText = minVal.toFixed(1);
+      document.getElementById('statMax').innerText = maxVal.toFixed(1);
+      document.getElementById('statRange').innerText = rangeVal.toFixed(1);
+      document.getElementById('statTotalN').innerText = `${N} Sampel`;
+
+      // Binning Data (Interval 10 unit)
+      const step = 10;
+      const maxBinLimit = Math.max(60, Math.ceil((maxVal + 1) / step) * step);
+      const bins = [];
+
+      for (let b = 0; b < maxBinLimit; b += step) {
+        bins.push({
+          label: `${b}-${b + step - 1}`,
+          start: b,
+          center: b,
+          count: 0,
+          prob: 0
+        });
+      }
+
+      sorted.forEach(val => {
+        const binIndex = Math.min(Math.floor(val / step), bins.length - 1);
+        if (bins[binIndex]) {
+          bins[binIndex].count++;
+        }
+      });
+
+      bins.forEach(bin => {
+        bin.prob = parseFloat(((bin.count / N) * 100).toFixed(1));
+      });
+
+      // Find Peak Bin
+      let peakBin = bins[0];
+      bins.forEach(bin => {
+        if (bin.prob > peakBin.prob) peakBin = bin;
+      });
+
+      document.getElementById('peakProbabilityText').innerText = `Level PM ${peakBin.start} - ${peakBin.start + 10} (${peakBin.prob}%)`;
+      
+      let summaryDesc = `Sebagian besar konsentrasi data berkumpul pada level <strong>PM ${peakBin.start} s/d ${peakBin.start + 10} µg/m³</strong> dengan probabilitas <strong>${peakBin.prob}%</strong>. `;
+      if (mean > median) {
+        summaryDesc += `Distribusi cenderung menceng kanan (Right-skewed) disebabkan adanya beberapa angka PM2.5 bernilai tinggi.`;
+      } else if (mean < median) {
+        summaryDesc += `Distribusi cenderung menceng kiri (Left-skewed) dengan konsentrasi pada rentang nilai tinggi.`;
+      } else {
+        summaryDesc += `Distribusi data simetris secara sempurna di sekitar rata-rata.`;
+      }
+      document.getElementById('distributionShapeText').innerHTML = summaryDesc;
+
+      const summaryList = document.getElementById('summaryList');
+      summaryList.innerHTML = `
+        <li class="flex items-start gap-2">
+          <span class="text-cyan-400 font-bold">•</span>
+          <span>Nilai Rerata (Mean): <strong>${mean.toFixed(2)} µg/m³</strong></span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-purple-400 font-bold">•</span>
+          <span>Simpangan Baku (σ): <strong>${stdDev.toFixed(2)}</strong> (Sebaran ${stdDev > 15 ? 'lebar' : 'rapat'})</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="text-emerald-400 font-bold">•</span>
+          <span>Rentang Nilai (Min - Max): <strong>${minVal} - ${maxVal} µg/m³</strong></span>
+        </li>
+      `;
+
+      renderProbabilityCurveChart(bins);
+      renderTable(bins.filter(b => b.count > 0));
+      drawAtmosphereVisualizer(mean, sorted);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // CHART.JS SMOOTH VIBRANT GRADIENT CURVE
+    function renderProbabilityCurveChart(bins) {
+      const canvas = document.getElementById('probabilityCurveChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const labels = bins.map(b => b.center.toString());
+      const dataProb = bins.map(b => b.prob);
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      // Vertical Multi-Color Gradient Fill
+      const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.6)');    // Cyan top
+      gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.3)');  // Indigo mid
+      gradient.addColorStop(1, 'rgba(15, 23, 42, 0.0)');      // Transparent bottom
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Probabilitas (%)',
+            data: dataProb,
+            borderColor: '#06b6d4',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.45, // Smooth spline
+            pointBackgroundColor: '#38bdf8',
+            pointBorderColor: '#030712',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointHoverBackgroundColor: '#ec4899',
+            pointHoverBorderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#f8fafc',
+              bodyColor: '#38bdf8',
+              borderColor: 'rgba(56, 189, 248, 0.3)',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                title: function(items) {
+                  return `Level PM2.5: ${items[0].label} µg/m³`;
+                },
+                label: function(context) {
+                  return ` Probabilitas Peluang: ${context.parsed.y}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Level PM2.5 (0, 10, 20, 30, 40, 50, 60...)',
+                color: '#94a3b8',
+                font: { size: 11, weight: '600' }
+              },
+              grid: { color: 'rgba(51, 65, 85, 0.25)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Probabilitas Peluang (%)',
+                color: '#94a3b8',
+                font: { size: 11, weight: '600' }
+              },
+              beginAtZero: true,
+              max: Math.min(100, Math.max(10, Math.max(...dataProb) + 10)),
+              grid: { color: 'rgba(51, 65, 85, 0.25)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 10 },
+                callback: function(val) { return val + '%'; }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderEmptyChart() {
+      const canvas = document.getElementById('probabilityCurveChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['0', '10', '20', '30', '40', '50'],
+          datasets: [{
+            data: [0, 0, 0, 0, 0, 0],
+            borderColor: '#334155',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(51, 65, 85, 0.2)' } },
+            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(51, 65, 85, 0.2)' } }
+          }
+        }
+      });
+    }
+
+    // ATMOSPHERE AERIAL HAZE VISUALIZER (CANVAS ANIMATION)
+    function drawAtmosphereVisualizer(meanVal, sortedValues) {
+      const canvas = document.getElementById('atmosphereCanvas');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+
+      if (atmosphereAnimationId) cancelAnimationFrame(atmosphereAnimationId);
+
+      const N = sortedValues.length;
+      if (N === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      // Determine Particle Density Count (Scaled)
+      const particleCount = Math.min(180, Math.max(20, N * 8));
+      document.getElementById('particleCountText').innerText = `${particleCount} Partikel Teranalisis`;
+
+      // Haze Density Badge Text
+      const hazeBadge = document.getElementById('hazeDensityBadge');
+      if (meanVal < 25) {
+        hazeBadge.innerText = `Kerapatan Rendah (${meanVal.toFixed(1)} µg/m³)`;
+        hazeBadge.className = "text-[11px] bg-cyan-500/20 text-cyan-300 font-extrabold px-3 py-1 rounded-full border border-cyan-500/30";
+      } else if (meanVal < 60) {
+        hazeBadge.innerText = `Kerapatan Sedang (${meanVal.toFixed(1)} µg/m³)`;
+        hazeBadge.className = "text-[11px] bg-amber-500/20 text-amber-300 font-extrabold px-3 py-1 rounded-full border border-amber-500/30";
+      } else {
+        hazeBadge.innerText = `Kerapatan Tinggi (${meanVal.toFixed(1)} µg/m³)`;
+        hazeBadge.className = "text-[11px] bg-rose-500/20 text-rose-300 font-extrabold px-3 py-1 rounded-full border border-rose-500/30";
+      }
+
+      // Generate Random Floating Particles mapped to PM2.5 values
+      const particles = [];
+      for (let i = 0; i < particleCount; i++) {
+        const sampleVal = sortedValues[i % N];
+        let color = 'rgba(6, 182, 212, '; // Cyan low
+        if (sampleVal > 55) color = 'rgba(244, 63, 94, '; // Rose high
+        else if (sampleVal > 25) color = 'rgba(245, 158, 11, '; // Amber mid
+
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 3 + 1.5,
+          speedX: (Math.random() - 0.5) * 0.8,
+          speedY: (Math.random() - 0.5) * 0.8,
+          alpha: Math.random() * 0.6 + 0.3,
+          color: color
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Background Fog Effect
+        const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        bgGradient.addColorStop(0, 'rgba(15, 23, 42, 0.4)');
+        bgGradient.addColorStop(1, 'rgba(30, 41, 59, 0.6)');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw and update particles
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color + p.alpha + ')';
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = p.color + '0.8)';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          p.x += p.speedX;
+          p.y += p.speedY;
+
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
+        });
+
+        atmosphereAnimationId = requestAnimationFrame(animate);
+      }
+
+      animate();
+    }
+
+    function handleCanvasResize() {
+      if (rawValues.length > 0) {
+        const sum = rawValues.reduce((a, b) => a + b, 0);
+        drawAtmosphereVisualizer(sum / rawValues.length, [...rawValues].sort((a,b)=>a-b));
+      }
+    }
+
+    function renderTable(activeBins) {
+      const tbody = document.getElementById('dataTableBody');
+      const emptyState = document.getElementById('emptyState');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+
+      if (activeBins.length === 0) {
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      } else {
+        if (emptyState) emptyState.classList.add('hidden');
+      }
+
+      activeBins.forEach(bin => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition-colors border-b border-slate-800/60";
+        tr.innerHTML = `
+          <td class="py-3.5 px-5 font-bold text-white">PM ${bin.start} - ${bin.start + 10} <span class="text-[10px] text-slate-500 font-normal">µg/m³</span></td>
+          <td class="py-3.5 px-5 font-semibold text-slate-200">${bin.count} Sampel</td>
+          <td class="py-3.5 px-5 font-extrabold text-cyan-400">${bin.prob}%</td>
+          <td class="py-3.5 px-5 w-48">
+            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div class="bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500 h-2 rounded-full" style="width: ${bin.prob}%"></div>
+            </div>
+          </td>
+          <td class="py-3.5 px-5 text-right no-print">
+            <button onclick="deleteRangeGroup(${bin.start}, ${bin.start + 9.99})" title="Hapus Kelompok Ini" class="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      
+      const toast = document.createElement('div');
+      
+      let borderClass = 'border-slate-700 bg-slate-900 text-slate-200';
+      let iconName = 'info';
+
+      if (type === 'success') {
+        borderClass = 'border-cyan-500/40 bg-slate-900/95 text-cyan-300 shadow-cyan-500/10';
+        iconName = 'check-circle';
+      } else if (type === 'error') {
+        borderClass = 'border-rose-500/40 bg-slate-900/95 text-rose-300 shadow-rose-500/10';
+        iconName = 'alert-circle';
+      }
+
+      toast.className = `p-3.5 rounded-xl border backdrop-blur-md shadow-2xl text-xs font-bold flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto ${borderClass}`;
+      toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i> <span>${message}</span>`;
+
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 50);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
